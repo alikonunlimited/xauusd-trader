@@ -13,6 +13,7 @@ const {
   getLotSize, BASE_LOT, TRADE_TARGETS,
   MARKET_CLOSE_HOUR_UTC, MARKET_OPEN_HOUR_UTC, MAX_LOSS_PER_TRADE,
   updateSpread,
+  restorePerformanceFromSupabase, seedPerformanceFromHistory,
 } = require('./engine');
 const { ensureHeaders, logTrade, logDailySummary } = require('./sheets');
 const { initDB, saveTrade, saveEquity, saveDailySummary, loadTrades, loadEquityHistory } = require('./db');
@@ -325,7 +326,6 @@ app.post('/api/closeAll',async(req,res)=>{
   res.json({ok:true});
 });
 
-
 app.post('/api/resetLosses', (req, res) => {
   try {
     const { resetLosses } = require('./engine');
@@ -377,6 +377,14 @@ async function start() {
       addLog(`Restored ${savedTrades.length} trades | $${state.balance.toFixed(2)} | AI re-learned`,'info');
     }
     if(savedEquity.length)state.equityHistory=[STARTING_BALANCE,...savedEquity];
+
+    // Seed AI weights from 1,494 historical trades before live learning takes over
+    seedPerformanceFromHistory(require('./historical_seed.json'));
+    addLog('Historical seed loaded — AI pre-trained on 1,494 real trades', 'info');
+
+    // Restore AI learning from previous live sessions (takes priority over seed)
+    await restorePerformanceFromSupabase();
+
     await ensureHeaders();
     const {price,source}=await fetchLivePrice();
     state.currentPrice=price;state.priceSource=source;pushPrice(price);
