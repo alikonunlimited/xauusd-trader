@@ -379,9 +379,11 @@ function getAdaptiveTargets(tradeType, history) {
   };
 }
 
-function getSizeMultiplier(confidence) {
+function getSizeMultiplier(confidence, tradeType = 'scalp') {
   const losses = performance.consecutiveLosses;
-  if (losses >= 15) return 0;
+  // Longer-timeframe trades are less affected by scalp loss streaks
+  const limit = tradeType === 'swing' ? 25 : tradeType === 'day' ? 22 : tradeType === 'intraday' ? 20 : 15;
+  if (losses >= limit) return 0;
   if (losses >= 3) return 0.5;
   return Math.max(0.5, Math.min(1.0, confidence));
 }
@@ -1033,8 +1035,8 @@ function decide(price, indicators, hourUTC, consecutiveWins, tradeType = 'scalp'
     if (!sc.spreadOk) return { action:'wait', tradeType, reason:`Spread too wide (${sc.spreadRatio.toFixed(1)}x)`, confidence:0, bullScore:0, bearScore:0 };
   }
 
-  const sizeM = getSizeMultiplier(0.5);
-  if (sizeM === 0) return { action:'wait', tradeType, reason:`Paused — ${performance.consecutiveLosses} straight losses`, confidence:0, bullScore:0, bearScore:0 };
+  const sizeM = getSizeMultiplier(0.5, tradeType);
+  if (sizeM === 0) return { action:'wait', tradeType, reason:`Paused — ${performance.consecutiveLosses} straight losses (${tradeType} limit)`, confidence:0, bullScore:0, bearScore:0 };
 
   const makeDecision = (action, reason, conf, conditions) => {
     const sl_dist = Math.min(target.pips_sl, MAX_LOSS_PER_TRADE / (lots * 100));
@@ -1274,9 +1276,38 @@ function decide(price, indicators, hourUTC, consecutiveWins, tradeType = 'scalp'
   const hasMTFSignal = mtf.mtfAlignedBull || mtf.mtfAlignedBear || mtf.recentSweepBull || mtf.recentSweepBear;
   const topScore   = Math.max(bull, bear);
   const confidence = Math.min(topScore / 10, 1);
-  const minScore   = performance.consecutiveLosses >= 3 ? 6 : hasMTFSignal ? 4 : 3;
 
-  if (topScore < minScore) return { action:'wait', tradeType, reason:`Score ${topScore.toFixed(1)} < ${minScore} | ${log.join(' · ')}`, confidence, bullScore:bull, bearScore:bear };
+  // Type-specific minimum score requirements:
+  // - scalp: fires frequently, lower bar, escalates with losses
+  // - intraday: requires good session quality (London/NY) and slightly higher score
+  // - day: requires HTF alignment; medium-high score
+  // - swing: requires full MTF alignment (D1+H4+H1); highest score threshold
+  let minScore;
+  if (tradeType === 'swing') {
+    // Swing needs full multi-timeframe alignment — only the best setups
+    if (!htf.fullBullAlign && !htf.fullBearAlign) {
+      return { action:'wait', tradeType, reason:`Swing needs full HTF align (D1+H4+H1) | ${log.join(' · ')}`, confidence, bullScore:bull, bearScore:bear };
+    }
+    minScore = performance.consecutiveLosses >= 3 ? 8 : 7;
+  } else if (tradeType === 'day') {
+    // Day trades need at least basic HTF confirmation
+    if (!htf.htfBull && !htf.htfBear) {
+      return { action:'wait', tradeType, reason:`Day trade needs HTF confirmation | ${log.join(' · ')}`, confidence, bullScore:bull, bearScore:bear };
+    }
+    minScore = performance.consecutiveLosses >= 3 ? 7 : 5;
+  } else if (tradeType === 'intraday') {
+    // Intraday works best during London/NY sessions
+    const goodSession = isGoodSession();
+    if (!goodSession) {
+      return { action:'wait', tradeType, reason:`Intraday: outside London/NY session (hour ${hourUTCnow} UTC) | ${log.join(' · ')}`, confidence, bullScore:bull, bearScore:bear };
+    }
+    minScore = performance.consecutiveLosses >= 3 ? 6 : 4;
+  } else {
+    // scalp — original logic
+    minScore = performance.consecutiveLosses >= 3 ? 6 : hasMTFSignal ? 4 : 3;
+  }
+
+  if (topScore < minScore) return { action:'wait', tradeType, reason:`Score ${topScore.toFixed(1)} < ${minScore} [${tradeType}] | ${log.join(' · ')}`, confidence, bullScore:bull, bearScore:bear };
 
   const action = bull >= bear ? 'buy' : 'sell';
   return makeDecision(action, `[${action.toUpperCase()}] B${bull.toFixed(1)}/S${bear.toFixed(1)} | ${log.join(' · ')}`, confidence, activeConditions);
