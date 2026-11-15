@@ -16,6 +16,7 @@ const {
   seedPerformanceFromHistory, getPerformanceSnapshot, mergePerformanceSnapshot,
 } = require('./engine');
 const { ensureHeaders, logTrade, logDailySummary } = require('./sheets');
+const { runWeeklyReview } = require('./weekly_review');
 const { initDB, saveTrade, saveEquity, saveDailySummary, loadTrades, loadEquityHistory, saveEngineState, loadEngineState } = require('./db');
 
 const app  = express();
@@ -339,6 +340,11 @@ app.post('/api/resetLosses', (req, res) => {
 });
 
 app.get('/health',(req,res)=>res.json({ok:true,uptime:process.uptime(),trades:state.trades.length,balance:state.balance,dailyPL:state.dailyPL,dailyPaused:state.dailyPaused,priceSource:state.priceSource}));
+
+// ── Weekly self-review: every Sunday at midnight UTC ─────────────────────────
+cron.schedule('0 0 * * 0', async () => {
+  await runWeeklyReview(null, addLog);
+}, { timezone: 'UTC' });
 
 cron.schedule('0 0 * * *',async()=>{
   const today=new Date().toLocaleDateString('en-US');

@@ -1,78 +1,145 @@
 'use strict';
 
 // ── SELF-LEARNING PERFORMANCE TRACKER ────────────────────────────────────────
+// UPGRADE: Extended memory — tracks conditions by: win/loss, totalPL (not just count),
+// combo tracking (condition pairs that fire together), hour/dow/priceZone patterns,
+// and a rolling 200-trade window instead of 20.
 const performance = {
   conditions: {
-    rsi_oversold_bull:    { wins: 0, losses: 0 },
-    rsi_overbought_bear:  { wins: 0, losses: 0 },
-    stoch_oversold_bull:  { wins: 0, losses: 0 },
-    stoch_overbought_bear:{ wins: 0, losses: 0 },
-    macd_bull:            { wins: 0, losses: 0 },
-    macd_bear:            { wins: 0, losses: 0 },
-    ema_bull_align:       { wins: 0, losses: 0 },
-    ema_bear_align:       { wins: 0, losses: 0 },
-    momentum_up:          { wins: 0, losses: 0 },
-    momentum_down:        { wins: 0, losses: 0 },
-    best_hour:            { wins: 0, losses: 0 },
-    worst_hour:           { wins: 0, losses: 0 },
-    near_support:         { wins: 0, losses: 0 },
-    near_resistance:      { wins: 0, losses: 0 },
-    high_volume:          { wins: 0, losses: 0 },
-    low_volume:           { wins: 0, losses: 0 },
-    htf_confirmed:        { wins: 0, losses: 0 },
-    htf_conflicted:       { wins: 0, losses: 0 },
-    fvg_bullish:          { wins: 0, losses: 0 },
-    fvg_bearish:          { wins: 0, losses: 0 },
-    volume_confirming:    { wins: 0, losses: 0 },
-    volume_diverging:     { wins: 0, losses: 0 },
-    htf_sr_support:       { wins: 0, losses: 0 },
-    htf_sr_resistance:    { wins: 0, losses: 0 },
-    // New MTF structure conditions
-    bos_bull:             { wins: 0, losses: 0 },
-    bos_bear:             { wins: 0, losses: 0 },
-    liquidity_sweep_bull: { wins: 0, losses: 0 },
-    liquidity_sweep_bear: { wins: 0, losses: 0 },
-    fvg_reaction_bull:    { wins: 0, losses: 0 },
-    fvg_reaction_bear:    { wins: 0, losses: 0 },
-    mtf_aligned_bull:     { wins: 0, losses: 0 },
-    mtf_aligned_bear:     { wins: 0, losses: 0 },
-    premium_zone:         { wins: 0, losses: 0 },
-    discount_zone:        { wins: 0, losses: 0 },
-    bias_bull:            { wins: 0, losses: 0 },
-    bias_bear:            { wins: 0, losses: 0 },
+    rsi_oversold_bull:    { wins: 0, losses: 0, totalPL: 0 },
+    rsi_overbought_bear:  { wins: 0, losses: 0, totalPL: 0 },
+    stoch_oversold_bull:  { wins: 0, losses: 0, totalPL: 0 },
+    stoch_overbought_bear:{ wins: 0, losses: 0, totalPL: 0 },
+    macd_bull:            { wins: 0, losses: 0, totalPL: 0 },
+    macd_bear:            { wins: 0, losses: 0, totalPL: 0 },
+    ema_bull_align:       { wins: 0, losses: 0, totalPL: 0 },
+    ema_bear_align:       { wins: 0, losses: 0, totalPL: 0 },
+    momentum_up:          { wins: 0, losses: 0, totalPL: 0 },
+    momentum_down:        { wins: 0, losses: 0, totalPL: 0 },
+    best_hour:            { wins: 0, losses: 0, totalPL: 0 },
+    worst_hour:           { wins: 0, losses: 0, totalPL: 0 },
+    near_support:         { wins: 0, losses: 0, totalPL: 0 },
+    near_resistance:      { wins: 0, losses: 0, totalPL: 0 },
+    high_volume:          { wins: 0, losses: 0, totalPL: 0 },
+    low_volume:           { wins: 0, losses: 0, totalPL: 0 },
+    htf_confirmed:        { wins: 0, losses: 0, totalPL: 0 },
+    htf_conflicted:       { wins: 0, losses: 0, totalPL: 0 },
+    fvg_bullish:          { wins: 0, losses: 0, totalPL: 0 },
+    fvg_bearish:          { wins: 0, losses: 0, totalPL: 0 },
+    volume_confirming:    { wins: 0, losses: 0, totalPL: 0 },
+    volume_diverging:     { wins: 0, losses: 0, totalPL: 0 },
+    htf_sr_support:       { wins: 0, losses: 0, totalPL: 0 },
+    htf_sr_resistance:    { wins: 0, losses: 0, totalPL: 0 },
+    bos_bull:             { wins: 0, losses: 0, totalPL: 0 },
+    bos_bear:             { wins: 0, losses: 0, totalPL: 0 },
+    liquidity_sweep_bull: { wins: 0, losses: 0, totalPL: 0 },
+    liquidity_sweep_bear: { wins: 0, losses: 0, totalPL: 0 },
+    fvg_reaction_bull:    { wins: 0, losses: 0, totalPL: 0 },
+    fvg_reaction_bear:    { wins: 0, losses: 0, totalPL: 0 },
+    mtf_aligned_bull:     { wins: 0, losses: 0, totalPL: 0 },
+    mtf_aligned_bear:     { wins: 0, losses: 0, totalPL: 0 },
+    premium_zone:         { wins: 0, losses: 0, totalPL: 0 },
+    discount_zone:        { wins: 0, losses: 0, totalPL: 0 },
+    bias_bull:            { wins: 0, losses: 0, totalPL: 0 },
+    bias_bear:            { wins: 0, losses: 0, totalPL: 0 },
+    news_caution:         { wins: 0, losses: 0, totalPL: 0 },
+    dxy_bull:             { wins: 0, losses: 0, totalPL: 0 },
+    dxy_bear:             { wins: 0, losses: 0, totalPL: 0 },
+    high_volatility:      { wins: 0, losses: 0, totalPL: 0 },
+    low_volatility:       { wins: 0, losses: 0, totalPL: 0 },
   },
   byType: {
-    scalp_buy:  { wins: 0, losses: 0, totalPL: 0 },
-    scalp_sell: { wins: 0, losses: 0, totalPL: 0 },
-    day_buy:    { wins: 0, losses: 0, totalPL: 0 },
-    day_sell:   { wins: 0, losses: 0, totalPL: 0 },
-    swing_buy:  { wins: 0, losses: 0, totalPL: 0 },
-    swing_sell: { wins: 0, losses: 0, totalPL: 0 },
+    scalp_buy:    { wins: 0, losses: 0, totalPL: 0 },
+    scalp_sell:   { wins: 0, losses: 0, totalPL: 0 },
+    intraday_buy: { wins: 0, losses: 0, totalPL: 0 },
+    intraday_sell:{ wins: 0, losses: 0, totalPL: 0 },
+    day_buy:      { wins: 0, losses: 0, totalPL: 0 },
+    day_sell:     { wins: 0, losses: 0, totalPL: 0 },
+    swing_buy:    { wins: 0, losses: 0, totalPL: 0 },
+    swing_sell:   { wins: 0, losses: 0, totalPL: 0 },
   },
+  // Extended: hourly performance map (key = UTC hour 0-23)
+  byHour: Object.fromEntries(Array.from({length:24},(_,i)=>[i,{wins:0,losses:0,totalPL:0}])),
+  // Extended: day-of-week performance (0=Sun..6=Sat)
+  byDOW:  Object.fromEntries(Array.from({length:7},(_,i)=>[i,{wins:0,losses:0,totalPL:0}])),
+  // Extended: price zone performance (rounded to nearest 25)
+  byPriceZone: {},
+  // Extended: condition combo tracking (top pairs that fire together)
+  combos: {},
+  // Rolling 200-trade window (up from 20)
   recentTrades:         [],
   totalTrades:          0,
   consecutiveLosses:    0,
   maxConsecutiveLosses: 0,
+  // ATR memory for adaptive TP/SL
+  atrHistory:           [],
+  // Market context cache
+  marketContext:        { dxyBull: null, newsWarning: false, newsEvents: [], lastUpdated: null },
 };
 
 function recordOutcome(trade) {
-  const { type, tradeType, pl, isWin, conditions } = trade;
+  const { type, tradeType, pl, isWin, conditions, openTime } = trade;
   const key = `${tradeType}_${type}`;
+
+  // ── byType (with PL weighting) ───────────────────────────────────────────────
   if (performance.byType[key]) {
     if (isWin) performance.byType[key].wins++;
     else        performance.byType[key].losses++;
     performance.byType[key].totalPL += pl;
   }
+
+  // ── conditions (with PL weighting) ───────────────────────────────────────────
   if (conditions) {
     conditions.forEach(c => {
       if (performance.conditions[c]) {
         if (isWin) performance.conditions[c].wins++;
         else        performance.conditions[c].losses++;
+        performance.conditions[c].totalPL = (performance.conditions[c].totalPL || 0) + pl;
       }
     });
+
+    // ── Combo tracking (condition pairs that fire together) ───────────────────
+    // Tracks which combinations of 2 conditions have best win rates
+    for (let i = 0; i < conditions.length; i++) {
+      for (let j = i + 1; j < conditions.length; j++) {
+        const comboKey = [conditions[i], conditions[j]].sort().join('+');
+        if (!performance.combos[comboKey]) performance.combos[comboKey] = { wins: 0, losses: 0, totalPL: 0 };
+        if (isWin) performance.combos[comboKey].wins++;
+        else        performance.combos[comboKey].losses++;
+        performance.combos[comboKey].totalPL += pl;
+      }
+    }
   }
-  performance.recentTrades.push({ isWin, pl, type, tradeType });
-  if (performance.recentTrades.length > 20) performance.recentTrades.shift();
+
+  // ── Hourly performance ────────────────────────────────────────────────────────
+  const hour = openTime ? new Date(openTime).getUTCHours() : new Date().getUTCHours();
+  if (performance.byHour[hour]) {
+    if (isWin) performance.byHour[hour].wins++;
+    else        performance.byHour[hour].losses++;
+    performance.byHour[hour].totalPL += pl;
+  }
+
+  // ── Day-of-week performance ───────────────────────────────────────────────────
+  const dow = openTime ? new Date(openTime).getUTCDay() : new Date().getUTCDay();
+  if (performance.byDOW[dow]) {
+    if (isWin) performance.byDOW[dow].wins++;
+    else        performance.byDOW[dow].losses++;
+    performance.byDOW[dow].totalPL += pl;
+  }
+
+  // ── Price zone performance (rounded to nearest 25) ───────────────────────────
+  if (trade.entry) {
+    const zone = Math.round(trade.entry / 25) * 25;
+    if (!performance.byPriceZone[zone]) performance.byPriceZone[zone] = { wins: 0, losses: 0, totalPL: 0 };
+    if (isWin) performance.byPriceZone[zone].wins++;
+    else        performance.byPriceZone[zone].losses++;
+    performance.byPriceZone[zone].totalPL += pl;
+  }
+
+  // ── Rolling 200-trade window ──────────────────────────────────────────────────
+  performance.recentTrades.push({ isWin, pl, type, tradeType, hour, dow, entry: trade.entry });
+  if (performance.recentTrades.length > 200) performance.recentTrades.shift();
+
   if (!isWin) {
     performance.consecutiveLosses++;
     performance.maxConsecutiveLosses = Math.max(performance.maxConsecutiveLosses, performance.consecutiveLosses);
@@ -80,11 +147,67 @@ function recordOutcome(trade) {
     performance.consecutiveLosses = 0;
   }
   performance.totalTrades++;
+
   // Persist to Postgres asynchronously (don't block trade flow)
   try {
     const { saveEngineState } = require('./db');
     saveEngineState(getPerformanceSnapshot()).catch(e => console.log('[Perf] Save error:', e.message));
   } catch(e) { /* db not ready yet */ }
+}
+
+// ── MARKET CONTEXT: Economic Calendar + DXY ──────────────────────────────────
+// Fetches upcoming high-impact news events and DXY direction every 30 minutes.
+// When a major event is <2hrs away, the engine tightens entry requirements.
+// DXY (USD strength) inversely correlates with gold — DXY up = gold down.
+
+let _lastContextFetch = 0;
+
+async function refreshMarketContext(currentPrice) {
+  const now = Date.now();
+  if (now - _lastContextFetch < 30 * 60 * 1000) return; // refresh every 30min
+  _lastContextFetch = now;
+
+  try {
+    // ── Economic Calendar (Forex Factory JSON feed) ──────────────────────────
+    const calUrl = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+    const calRes  = await fetch(calUrl, { timeout: 8000 }).catch(() => null);
+    if (calRes && calRes.ok) {
+      const events = await calRes.json();
+      const nowUTC = new Date();
+      const highImpact = events.filter(e => {
+        if (e.impact !== 'High') return false;
+        const evTime = new Date(e.date);
+        const minAway = (evTime - nowUTC) / 60000;
+        return minAway > -30 && minAway < 120; // within 30min past or 2hrs future
+      });
+      performance.marketContext.newsEvents   = highImpact.map(e => ({ title: e.title, time: e.date, currency: e.country }));
+      performance.marketContext.newsWarning  = highImpact.length > 0;
+      if (highImpact.length > 0) {
+        console.log(`[Context] ⚠ ${highImpact.length} high-impact events near: ${highImpact.map(e=>e.title).join(', ')}`);
+      }
+    }
+  } catch(e) { /* calendar unavailable — carry on */ }
+
+  try {
+    // ── DXY Proxy (use EUR/USD as inverse proxy — available free) ────────────
+    // Higher EURUSD = weaker USD = gold bullish. Lower EURUSD = stronger USD = gold bearish.
+    const dxyUrl = 'https://api.exchangerate-api.com/v4/latest/USD';
+    const dxyRes  = await fetch(dxyUrl, { timeout: 8000 }).catch(() => null);
+    if (dxyRes && dxyRes.ok) {
+      const data = await dxyRes.json();
+      const eur = data.rates && data.rates.EUR;
+      if (eur) {
+        // Compare to cached prior value to get direction
+        const prior = performance.marketContext._priorEUR;
+        if (prior) {
+          performance.marketContext.dxyBull = eur < prior; // EUR fell = USD strengthened = DXY bull = gold bearish
+        }
+        performance.marketContext._priorEUR = eur;
+      }
+    }
+  } catch(e) { /* DXY proxy unavailable — carry on */ }
+
+  performance.marketContext.lastUpdated = new Date().toISOString();
 }
 
 // ── PERFORMANCE PERSISTENCE (Postgres via db.js) ──────────────────────────────
@@ -96,10 +219,15 @@ function getPerformanceSnapshot() {
   return {
     conditions:           performance.conditions,
     byType:               performance.byType,
+    byHour:               performance.byHour,
+    byDOW:                performance.byDOW,
+    byPriceZone:          performance.byPriceZone,
+    combos:               performance.combos,
     totalTrades:          performance.totalTrades,
     consecutiveLosses:    performance.consecutiveLosses,
     maxConsecutiveLosses: performance.maxConsecutiveLosses,
-    recentTrades:         performance.recentTrades,
+    recentTrades:         performance.recentTrades.slice(-200),
+    atrHistory:           performance.atrHistory.slice(-100),
   };
 }
 
@@ -108,6 +236,7 @@ function mergePerformanceSnapshot(data) {
   if (data.conditions) {
     Object.keys(data.conditions).forEach(k => {
       if (performance.conditions[k]) performance.conditions[k] = data.conditions[k];
+      else performance.conditions[k] = data.conditions[k]; // keep unknown keys from future versions
     });
   }
   if (data.byType) {
@@ -115,10 +244,24 @@ function mergePerformanceSnapshot(data) {
       if (performance.byType[k]) performance.byType[k] = data.byType[k];
     });
   }
+  if (data.byHour) {
+    Object.keys(data.byHour).forEach(k => {
+      performance.byHour[k] = data.byHour[k];
+    });
+  }
+  if (data.byDOW) {
+    Object.keys(data.byDOW).forEach(k => {
+      performance.byDOW[k] = data.byDOW[k];
+    });
+  }
+  if (data.byPriceZone)  performance.byPriceZone  = data.byPriceZone;
+  if (data.combos)       performance.combos        = data.combos;
+  if (data.atrHistory)   performance.atrHistory    = data.atrHistory;
   if (data.totalTrades)          performance.totalTrades          = data.totalTrades;
   if (data.consecutiveLosses)    performance.consecutiveLosses    = data.consecutiveLosses;
   if (data.maxConsecutiveLosses) performance.maxConsecutiveLosses = data.maxConsecutiveLosses;
   if (data.recentTrades)         performance.recentTrades         = data.recentTrades;
+  console.log(`[Perf] Restored: ${data.totalTrades || 0} trades, ${data.consecutiveLosses || 0} consec losses`);
 }
 
 // Seeds performance from pre-analyzed historical CSV data.
@@ -154,10 +297,86 @@ function resetLosses() {
 function getConditionWeight(condition, baseWeight) {
   const perf = performance.conditions[condition];
   if (!perf || (perf.wins + perf.losses) < 5) return baseWeight;
-  const wr = perf.wins / (perf.wins + perf.losses);
-  if (wr > 0.6) return baseWeight * 1.4;
-  if (wr < 0.4) return baseWeight * 0.5;
-  return baseWeight;
+  const total = perf.wins + perf.losses;
+  const wr = perf.wins / total;
+  // PL-weighted adjustment: also factor in average profit per trade
+  const avgPL = (perf.totalPL || 0) / total;
+  let multiplier = 1.0;
+  if (wr > 0.55 && avgPL > 0) multiplier = 1.5;       // winning AND profitable
+  else if (wr > 0.55)         multiplier = 1.2;       // winning but marginal PL
+  else if (wr < 0.35 || avgPL < -1) multiplier = 0.4; // losing or money-losing
+  else if (wr < 0.45)         multiplier = 0.7;       // below breakeven
+  return baseWeight * multiplier;
+}
+
+// Returns a bonus weight if two conditions have historically fired together with good results
+function getComboBonus(cond1, cond2) {
+  const key = [cond1, cond2].sort().join('+');
+  const combo = performance.combos[key];
+  if (!combo || (combo.wins + combo.losses) < 5) return 0;
+  const wr = combo.wins / (combo.wins + combo.losses);
+  const avgPL = combo.totalPL / (combo.wins + combo.losses);
+  if (wr > 0.6 && avgPL > 0) return 1.5;  // powerful combo
+  if (wr > 0.5 && avgPL > 0) return 0.75;
+  return 0;
+}
+
+// Returns hourly performance adjustment (-1.5 to +1.5)
+function getHourWeight(hour) {
+  const h = performance.byHour[hour];
+  if (!h || (h.wins + h.losses) < 10) return 0;
+  const wr = h.wins / (h.wins + h.losses);
+  if (wr > 0.55) return 1.0;
+  if (wr < 0.30) return -1.5;
+  if (wr < 0.40) return -0.75;
+  return 0;
+}
+
+// Returns price zone confidence adjustment
+function getPriceZoneWeight(price) {
+  const zone = Math.round(price / 25) * 25;
+  const z = performance.byPriceZone[zone];
+  if (!z || (z.wins + z.losses) < 5) return 0;
+  const wr = z.wins / (z.wins + z.losses);
+  if (wr > 0.55) return 1.0;
+  if (wr < 0.30) return -1.0;
+  return 0;
+}
+
+// ── ADAPTIVE TP/SL (ATR-based) ────────────────────────────────────────────────
+// Instead of fixed pip targets, TP/SL scale with recent market volatility (ATR).
+// Higher ATR = wider targets. Lower ATR = tighter. Prevents premature SL hits in
+// volatile sessions and avoids leaving money on the table in trending conditions.
+function getAdaptiveTargets(tradeType, history) {
+  const base = {
+    scalp:    { pips_tp: 3,   pips_sl: 0.75 },
+    intraday: { pips_tp: 6,   pips_sl: 2    },
+    day:      { pips_tp: 10,  pips_sl: 3    },
+    swing:    { pips_tp: 100, pips_sl: 50   },
+  };
+  const fallback = base[tradeType] || base.scalp;
+  if (!history || history.length < 20) return fallback;
+
+  // ATR over last 20 bars
+  const recent = history.slice(-20);
+  const atr = recent.slice(1).reduce((sum, p, i) => sum + Math.abs(p - recent[i]), 0) / 19;
+
+  // Store ATR for context
+  performance.atrHistory.push(atr);
+  if (performance.atrHistory.length > 100) performance.atrHistory.shift();
+
+  const avgATR = performance.atrHistory.reduce((a, b) => a + b, 0) / performance.atrHistory.length;
+  const atrRatio = atr / (avgATR || atr); // 1.0 = normal, >1.5 = volatile, <0.5 = quiet
+
+  if (tradeType === 'swing') return fallback; // swings stay fixed
+
+  // Scale TP/SL with ATR, capped at 2x and floored at 0.5x
+  const scale = Math.min(Math.max(atrRatio, 0.5), 2.0);
+  return {
+    pips_tp: parseFloat((fallback.pips_tp * scale).toFixed(2)),
+    pips_sl: parseFloat((fallback.pips_sl * scale).toFixed(2)),
+    atr, atrRatio, scale,
+  };
 }
 
 function getSizeMultiplier(confidence) {
@@ -786,8 +1005,13 @@ function checkSwingReentry(price, history, direction, htf, vol) {
 
 // ── DECISION ENGINE ───────────────────────────────────────────────────────────
 function decide(price, indicators, hourUTC, consecutiveWins, tradeType = 'scalp', extraData = {}) {
-  const target = TRADE_TARGETS[tradeType];
+  // Adaptive TP/SL from ATR — smarter targets based on current volatility
+  const adaptiveTarget = getAdaptiveTargets(tradeType, priceHistory);
+  const target = adaptiveTarget;
   const lots   = getLotSize(consecutiveWins);
+
+  // Refresh market context in background (news + DXY) — non-blocking
+  refreshMarketContext(price).catch(() => {});
 
   const now        = new Date();
   const hourUTCnow = now.getUTCHours();
@@ -968,6 +1192,66 @@ function decide(price, indicators, hourUTC, consecutiveWins, tradeType = 'scalp'
   if (isWorst) { bull -= 1.5; bear -= 1.5; log.push('⚠ Worst hour'); activeConditions.push('worst_hour'); }
   if (isBest)  { bull += 1;   bear += 1;   log.push('✓ Best hour');  activeConditions.push('best_hour'); }
 
+  // ── Learned hour weight (from actual trade outcomes by UTC hour) ─────────────
+  const hourAdj = getHourWeight(hourUTC);
+  if (hourAdj !== 0) {
+    bull += hourAdj; bear += hourAdj;
+    log.push(`Hour ${hourUTC} adj: ${hourAdj > 0 ? '+' : ''}${hourAdj.toFixed(1)}`);
+  }
+
+  // ── Price zone confidence ─────────────────────────────────────────────────────
+  const zoneAdj = getPriceZoneWeight(price);
+  if (zoneAdj !== 0) {
+    bull += zoneAdj; bear += zoneAdj;
+    log.push(`Zone ~${Math.round(price/25)*25} adj: ${zoneAdj > 0 ? '+' : ''}${zoneAdj.toFixed(1)}`);
+  }
+
+  // ── Combo bonuses (best condition pairs from history) ────────────────────────
+  // Check top combos: MTF + liquidity sweep, BOS + HTF, discount + sweep
+  const comboPairs = [
+    ['mtf_aligned_bull','liquidity_sweep_bull'],
+    ['mtf_aligned_bear','liquidity_sweep_bear'],
+    ['bos_bull','htf_confirmed'],
+    ['bos_bear','htf_confirmed'],
+    ['discount_zone','liquidity_sweep_bull'],
+    ['premium_zone','liquidity_sweep_bear'],
+  ];
+  for (const [c1, c2] of comboPairs) {
+    if (activeConditions.includes(c1) && activeConditions.includes(c2)) {
+      const bonus = getComboBonus(c1, c2);
+      if (bonus > 0) {
+        if (c1.includes('bull') || c2.includes('bull') || c1 === 'discount_zone') bull += bonus;
+        else bear += bonus;
+        log.push(`Combo ${c1.split('_')[0]}+${c2.split('_')[0]}: +${bonus}`);
+      }
+    }
+  }
+
+  // ── DXY Context (USD strength inversely correlates with gold) ────────────────
+  const ctx = performance.marketContext;
+  if (ctx.dxyBull === true)  {
+    bear += 1.5; log.push('DXY bull → gold bearish'); activeConditions.push('dxy_bull');
+  } else if (ctx.dxyBull === false) {
+    bull += 1.5; log.push('DXY bear → gold bullish'); activeConditions.push('dxy_bear');
+  }
+
+  // ── News Caution: raise the bar within 2hrs of high-impact events ────────────
+  if (ctx.newsWarning) {
+    bull -= 1; bear -= 1;
+    log.push(`⚠ News event near: ${ctx.newsEvents.map(e=>e.title).slice(0,2).join(', ')}`);
+    activeConditions.push('news_caution');
+  }
+
+  // ── ATR volatility context ────────────────────────────────────────────────────
+  if (adaptiveTarget.atrRatio > 1.8) {
+    // Very high volatility — require higher conviction
+    log.push(`High volatility (ATR ${adaptiveTarget.atrRatio?.toFixed(1)}x)`);
+    activeConditions.push('high_volatility');
+  } else if (adaptiveTarget.atrRatio < 0.6) {
+    log.push(`Low volatility (ATR ${adaptiveTarget.atrRatio?.toFixed(1)}x)`);
+    activeConditions.push('low_volatility');
+  }
+
   // Symmetric trend alignment
   if (trend === 'bull') { bull += 1; log.push('Trend bull'); }
   else                  { bear += 1; log.push('Trend bear'); }
@@ -1011,4 +1295,5 @@ module.exports = {
   MAX_LOSS_PER_TRADE, updateSpread, getSpreadScore,
   getSwingBias, SWING_BIAS,
   seedPerformanceFromHistory, getPerformanceSnapshot, mergePerformanceSnapshot,
+  getAdaptiveTargets, refreshMarketContext,
 };

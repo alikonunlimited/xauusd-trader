@@ -59,14 +59,19 @@ async function initDB() {
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS engine_state (
-        id                    TEXT PRIMARY KEY,
-        conditions            JSONB,
-        by_type               JSONB,
-        total_trades          INTEGER DEFAULT 0,
-        consecutive_losses    INTEGER DEFAULT 0,
+        id                     TEXT PRIMARY KEY,
+        conditions             JSONB,
+        by_type                JSONB,
+        by_hour                JSONB,
+        by_dow                 JSONB,
+        by_price_zone          JSONB,
+        combos                 JSONB,
+        total_trades           INTEGER DEFAULT 0,
+        consecutive_losses     INTEGER DEFAULT 0,
         max_consecutive_losses INTEGER DEFAULT 0,
-        recent_trades         JSONB,
-        saved_at              TIMESTAMPTZ DEFAULT NOW()
+        recent_trades          JSONB,
+        atr_history            JSONB,
+        saved_at               TIMESTAMPTZ DEFAULT NOW()
       );
     `);
 
@@ -167,20 +172,28 @@ async function saveEngineState(snapshot) {
   try {
     await pool.query(`
       INSERT INTO engine_state
-        (id, conditions, by_type, total_trades, consecutive_losses, max_consecutive_losses, recent_trades, saved_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+        (id, conditions, by_type, by_hour, by_dow, by_price_zone, combos,
+         total_trades, consecutive_losses, max_consecutive_losses,
+         recent_trades, atr_history, saved_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
       ON CONFLICT (id) DO UPDATE SET
-        conditions=$2, by_type=$3, total_trades=$4,
-        consecutive_losses=$5, max_consecutive_losses=$6,
-        recent_trades=$7, saved_at=NOW()
+        conditions=$2, by_type=$3, by_hour=$4, by_dow=$5,
+        by_price_zone=$6, combos=$7, total_trades=$8,
+        consecutive_losses=$9, max_consecutive_losses=$10,
+        recent_trades=$11, atr_history=$12, saved_at=NOW()
     `, [
       'engine_performance',
       JSON.stringify(snapshot.conditions),
       JSON.stringify(snapshot.byType),
+      JSON.stringify(snapshot.byHour    || {}),
+      JSON.stringify(snapshot.byDOW     || {}),
+      JSON.stringify(snapshot.byPriceZone || {}),
+      JSON.stringify(snapshot.combos    || {}),
       snapshot.totalTrades,
       snapshot.consecutiveLosses,
       snapshot.maxConsecutiveLosses,
-      JSON.stringify(snapshot.recentTrades),
+      JSON.stringify(snapshot.recentTrades || []),
+      JSON.stringify(snapshot.atrHistory   || []),
     ]);
   } catch (err) {
     console.error('[DB] saveEngineState error:', err.message);
@@ -196,10 +209,15 @@ async function loadEngineState() {
     return {
       conditions:           r.conditions,
       byType:               r.by_type,
+      byHour:               r.by_hour,
+      byDOW:                r.by_dow,
+      byPriceZone:          r.by_price_zone,
+      combos:               r.combos,
       totalTrades:          r.total_trades,
       consecutiveLosses:    r.consecutive_losses,
       maxConsecutiveLosses: r.max_consecutive_losses,
       recentTrades:         r.recent_trades,
+      atrHistory:           r.atr_history,
     };
   } catch (err) {
     console.error('[DB] loadEngineState error:', err.message);
