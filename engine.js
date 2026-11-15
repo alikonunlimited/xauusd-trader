@@ -80,6 +80,71 @@ function recordOutcome(trade) {
     performance.consecutiveLosses = 0;
   }
   performance.totalTrades++;
+  // Persist to Postgres asynchronously (don't block trade flow)
+  try {
+    const { saveEngineState } = require('./db');
+    saveEngineState(getPerformanceSnapshot()).catch(e => console.log('[Perf] Save error:', e.message));
+  } catch(e) { /* db not ready yet */ }
+}
+
+// ── PERFORMANCE PERSISTENCE (Postgres via db.js) ──────────────────────────────
+// getPerformanceSnapshot() — returns a plain object snapshot for saving
+// mergePerformanceSnapshot() — merges a saved snapshot back into live performance
+// Both called by main.js on startup and after each trade via recordOutcome.
+
+function getPerformanceSnapshot() {
+  return {
+    conditions:           performance.conditions,
+    byType:               performance.byType,
+    totalTrades:          performance.totalTrades,
+    consecutiveLosses:    performance.consecutiveLosses,
+    maxConsecutiveLosses: performance.maxConsecutiveLosses,
+    recentTrades:         performance.recentTrades,
+  };
+}
+
+function mergePerformanceSnapshot(data) {
+  if (!data) return;
+  if (data.conditions) {
+    Object.keys(data.conditions).forEach(k => {
+      if (performance.conditions[k]) performance.conditions[k] = data.conditions[k];
+    });
+  }
+  if (data.byType) {
+    Object.keys(data.byType).forEach(k => {
+      if (performance.byType[k]) performance.byType[k] = data.byType[k];
+    });
+  }
+  if (data.totalTrades)          performance.totalTrades          = data.totalTrades;
+  if (data.consecutiveLosses)    performance.consecutiveLosses    = data.consecutiveLosses;
+  if (data.maxConsecutiveLosses) performance.maxConsecutiveLosses = data.maxConsecutiveLosses;
+  if (data.recentTrades)         performance.recentTrades         = data.recentTrades;
+}
+
+// Seeds performance from pre-analyzed historical CSV data.
+// Called once on startup BEFORE restorePerformanceFromSupabase so live learning takes priority.
+function seedPerformanceFromHistory(seedData) {
+  if (!seedData) return;
+  console.log('[Perf] Seeding from historical data...');
+  if (seedData.conditions) {
+    Object.keys(seedData.conditions).forEach(k => {
+      if (performance.conditions[k]) {
+        performance.conditions[k].wins   += seedData.conditions[k].wins   || 0;
+        performance.conditions[k].losses += seedData.conditions[k].losses || 0;
+      }
+    });
+  }
+  if (seedData.byType) {
+    Object.keys(seedData.byType).forEach(k => {
+      if (performance.byType[k]) {
+        performance.byType[k].wins    += seedData.byType[k].wins    || 0;
+        performance.byType[k].losses  += seedData.byType[k].losses  || 0;
+        performance.byType[k].totalPL += seedData.byType[k].totalPL || 0;
+      }
+    });
+  }
+  if (seedData.totalTrades) performance.totalTrades += seedData.totalTrades;
+  console.log(`[Perf] Seeded ${seedData.totalTrades || 0} historical trades`);
 }
 
 function resetLosses() {
@@ -945,4 +1010,5 @@ module.exports = {
   MARKET_CLOSE_HOUR_UTC, MARKET_OPEN_HOUR_UTC,
   MAX_LOSS_PER_TRADE, updateSpread, getSpreadScore,
   getSwingBias, SWING_BIAS,
+  seedPerformanceFromHistory, getPerformanceSnapshot, mergePerformanceSnapshot,
 };

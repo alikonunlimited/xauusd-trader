@@ -13,10 +13,10 @@ const {
   getLotSize, BASE_LOT, TRADE_TARGETS,
   MARKET_CLOSE_HOUR_UTC, MARKET_OPEN_HOUR_UTC, MAX_LOSS_PER_TRADE,
   updateSpread,
-  restorePerformanceFromSupabase, seedPerformanceFromHistory,
+  seedPerformanceFromHistory, getPerformanceSnapshot, mergePerformanceSnapshot,
 } = require('./engine');
 const { ensureHeaders, logTrade, logDailySummary } = require('./sheets');
-const { initDB, saveTrade, saveEquity, saveDailySummary, loadTrades, loadEquityHistory } = require('./db');
+const { initDB, saveTrade, saveEquity, saveDailySummary, loadTrades, loadEquityHistory, saveEngineState, loadEngineState } = require('./db');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -383,7 +383,11 @@ async function start() {
     addLog('Historical seed loaded — AI pre-trained on 1,494 real trades', 'info');
 
     // Restore AI learning from previous live sessions (takes priority over seed)
-    await restorePerformanceFromSupabase();
+    const savedState = await loadEngineState();
+    if (savedState) {
+      mergePerformanceSnapshot(savedState);
+      addLog(`[Perf] Restored: ${savedState.totalTrades} trades, ${savedState.consecutiveLosses} consec losses`, 'info');
+    }
 
     await ensureHeaders();
     const {price,source}=await fetchLivePrice();

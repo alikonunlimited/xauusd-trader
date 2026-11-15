@@ -57,6 +57,19 @@ async function initDB() {
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS engine_state (
+        id                    TEXT PRIMARY KEY,
+        conditions            JSONB,
+        by_type               JSONB,
+        total_trades          INTEGER DEFAULT 0,
+        consecutive_losses    INTEGER DEFAULT 0,
+        max_consecutive_losses INTEGER DEFAULT 0,
+        recent_trades         JSONB,
+        saved_at              TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     console.log('[DB] Tables ready');
   } catch (err) {
     console.error('[DB] initDB error:', err.message);
@@ -149,4 +162,53 @@ async function loadEquityHistory() {
   }
 }
 
-module.exports = { initDB, saveTrade, saveEquity, saveDailySummary, loadTrades, loadEquityHistory };
+// ── SAVE ENGINE PERFORMANCE STATE ─────────────────────────────────────────────
+async function saveEngineState(snapshot) {
+  try {
+    await pool.query(`
+      INSERT INTO engine_state
+        (id, conditions, by_type, total_trades, consecutive_losses, max_consecutive_losses, recent_trades, saved_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+      ON CONFLICT (id) DO UPDATE SET
+        conditions=$2, by_type=$3, total_trades=$4,
+        consecutive_losses=$5, max_consecutive_losses=$6,
+        recent_trades=$7, saved_at=NOW()
+    `, [
+      'engine_performance',
+      JSON.stringify(snapshot.conditions),
+      JSON.stringify(snapshot.byType),
+      snapshot.totalTrades,
+      snapshot.consecutiveLosses,
+      snapshot.maxConsecutiveLosses,
+      JSON.stringify(snapshot.recentTrades),
+    ]);
+  } catch (err) {
+    console.error('[DB] saveEngineState error:', err.message);
+  }
+}
+
+// ── LOAD ENGINE PERFORMANCE STATE ─────────────────────────────────────────────
+async function loadEngineState() {
+  try {
+    const result = await pool.query(`SELECT * FROM engine_state WHERE id = 'engine_performance'`);
+    if (!result.rows.length) return null;
+    const r = result.rows[0];
+    return {
+      conditions:           r.conditions,
+      byType:               r.by_type,
+      totalTrades:          r.total_trades,
+      consecutiveLosses:    r.consecutive_losses,
+      maxConsecutiveLosses: r.max_consecutive_losses,
+      recentTrades:         r.recent_trades,
+    };
+  } catch (err) {
+    console.error('[DB] loadEngineState error:', err.message);
+    return null;
+  }
+}
+
+module.exports = {
+  initDB, saveTrade, saveEquity, saveDailySummary,
+  loadTrades, loadEquityHistory,
+  saveEngineState, loadEngineState,
+};
