@@ -1,0 +1,91 @@
+{
+  "totalTrades": 1494,
+  "bestHoursUTC": [
+    0,
+    7,
+    11,
+    16
+  ],
+  "worstHoursUTC": [
+    3,
+    6,
+    8,
+    10,
+    12,
+    14
+  ],
+  "byType": {
+    "day_buy": {
+      "wins": 6,
+      "losses": 14,
+      "totalPL": -97.87
+    },
+    "intraday_buy": {
+      "wins": 0,
+      "losses": 2,
+      "totalPL": -19.2
+    },
+    "scalp_buy": {
+      "wins": 109,
+      "losses": 310,
+      "totalPL": -220.18
+    },
+    "swing_buy": {
+      "wins": 3,
+      "losses": 6,
+      "totalPL": -44.75
+    },
+    "day_sell": {
+      "wins": 16,
+      "losses": 22,
+      "totalPL": 93.99
+    },
+    "intraday_sell": {
+      "wins": 4,
+      "losses": 9,
+      "totalPL": -14.5
+    },
+    "scalp_sell": {
+      "wins": 251,
+      "losses": 728,
+      "totalPL": -364.57
+    },
+    "swing_sell": {
+      "wins": 7,
+      "losses": 7,
+      "totalPL": 11.48
+    }
+  },
+  "conditions": {
+    "best_hour": {
+      "wins": 146,
+      "losses": 282
+    },
+    "worst_hour": {
+      "wins": 50,
+      "losses": 224
+    },
+    "htf_confirmed": {
+      "wins": 10,
+      "losses": 13
+    },
+    "rsi_oversold_bull": {},
+    "momentum_up": {
+      "wins": 109,
+      "losses": 310
+    },
+    "momentum_down": {
+      "wins": 251,
+      "losses": 728
+    }
+  },
+  "notes": {
+    "overallWinRate": 0.2651,
+    "totalPL": -655.6,
+    "dateRange": "2026-09-05 to 2026-11-10",
+    "totalTrades": 1494,
+    "bestStyleWR": "swing_sell=50%, day_sell=42%, day_buy=30%",
+    "worstStyle": "scalp overall=25.8%",
+    "keyInsight": "Sells outperform buys on swing/day. Scalp WR below breakeven. Best hours: 0,7,11,16 UTC"
+  }
+}
